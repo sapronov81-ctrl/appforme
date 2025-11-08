@@ -27,31 +27,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
+          flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Flutter pub get
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate native (if missing)
+      - name: Generate native folders (if missing)
         run: flutter create .
 
-      - name: Build AAB & APK
-        run: |
-          flutter build appbundle --release
-          flutter build apk --release
+      - name: Build Android AppBundle (.aab)
+        run: flutter build appbundle --release
 
-      - name: Upload artifacts
+      - name: Build Android APK (.apk)
+        run: flutter build apk --release
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-android-release-${{ github.ref_name }}-${{ github.run_number }}
+          name: barista-release-${{ github.run_number }}
           path: |
             build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/*.aab
+            build/app/outputs/bundle/release/app-release.aab
           retention-days: 14
+
