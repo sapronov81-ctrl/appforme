@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Скачать и распаковать архив репозитория
+      # 1️⃣ Скачать и распаковать проект
       - name: Download repository ZIP
         run: |
           echo "Downloading repository archive..."
           curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/main.zip"
           echo "Extracting..."
           python3 -c "import zipfile; zipfile.ZipFile('repo.zip').extractall('.'); print('Repository extracted.')"
-          echo "Contents:"
+          echo "Contents after extract:"
           ls -l
 
       # 2️⃣ Установить Flutter
@@ -29,16 +29,24 @@ jobs:
           flutter-version: '3.24.x'
           channel: 'stable'
 
-      # 3️⃣ Проверка структуры и сборка
+      # 3️⃣ Проверить окружение
+      - name: Check Flutter
+        run: flutter doctor -v
+
+      # 4️⃣ Сгенерировать недостающие android/ и ios/ (если отсутствуют)
+      - name: Generate platform folders
+        working-directory: appforme-main
+        run: flutter create .
+
+      # 5️⃣ Установить зависимости и собрать приложение
       - name: Build Android
-        working-directory: appforme-main  # ⚠️ имя папки после распаковки архива
+        working-directory: appforme-main
         run: |
-          flutter doctor
           flutter pub get
           flutter build apk --release
           flutter build appbundle --release
 
-      # 4️⃣ Загрузка артефактов
+      # 6️⃣ Загрузить артефакты сборки
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -46,3 +54,4 @@ jobs:
           path: |
             appforme-main/build/app/outputs/flutter-apk/app-release.apk
             appforme-main/build/app/outputs/bundle/release/app-release.aab
+
