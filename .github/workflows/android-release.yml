@@ -19,7 +19,9 @@ jobs:
           curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/main.zip"
           echo "Extracting..."
           python3 -c "import zipfile; zipfile.ZipFile('repo.zip').extractall('.'); print('Repository extracted.')"
-          echo "Contents after extract:"
+          echo "Renaming folder..."
+          mv appforme-main appforme_main || true
+          echo "Contents after rename:"
           ls -l
 
       # 2️⃣ Установить Flutter
@@ -33,14 +35,14 @@ jobs:
       - name: Check Flutter
         run: flutter doctor -v
 
-      # 4️⃣ Сгенерировать недостающие android/ и ios/ (если отсутствуют)
+      # 4️⃣ Сгенерировать android/ и ios/ (если нет)
       - name: Generate platform folders
-        working-directory: appforme-main
+        working-directory: appforme_main
         run: flutter create .
 
       # 5️⃣ Установить зависимости и собрать приложение
       - name: Build Android
-        working-directory: appforme-main
+        working-directory: appforme_main
         run: |
           flutter pub get
           flutter build apk --release
@@ -52,6 +54,5 @@ jobs:
         with:
           name: barista-release-${{ github.run_number }}
           path: |
-            appforme-main/build/app/outputs/flutter-apk/app-release.apk
-            appforme-main/build/app/outputs/bundle/release/app-release.aab
-
+            appforme_main/build/app/outputs/flutter-apk/app-release.apk
+            appforme_main/build/app/outputs/bundle/release/app-release.aab
