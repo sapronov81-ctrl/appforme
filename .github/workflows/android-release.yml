@@ -12,30 +12,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Скачать и распаковать архив репозитория
       - name: Download repository ZIP
         run: |
           echo "Downloading repository archive..."
           curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/main.zip"
-          python3 - <<'PYCODE'
-import zipfile
-with zipfile.ZipFile("repo.zip", "r") as zip_ref:
-    zip_ref.extractall(".")
-print("Repository extracted.")
-PYCODE
+          echo "Extracting..."
+          python3 -c "import zipfile; zipfile.ZipFile('repo.zip').extractall('.'); print('Repository extracted.')"
           ls -R | head -20
 
+      # 2️⃣ Установить Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.x'
           channel: 'stable'
 
+      # 3️⃣ Сборка Flutter-приложения
       - name: Build Android
         run: |
           flutter pub get
           flutter build apk --release
           flutter build appbundle --release
 
+      # 4️⃣ Загрузить артефакты сборки
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
