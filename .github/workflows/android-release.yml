@@ -1,10 +1,10 @@
 name: Android Release (APK & AAB)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # запуск вручную
   push:
     tags:
-      - "v*.*.*"
+      - "v*.*.*" # запуск при пуше тега (например, v1.0.0)
 
 env:
   JAVA_VERSION: "17"
@@ -17,48 +17,48 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    name: Build Android App
+    runs-on: ubuntu-22.04  # гарантировано Linux с sudo и apt-get
 
     steps:
-      - name: Install required packages
+      # 1️⃣ Проверка окружения
+      - name: Verify environment
         run: |
-          apt-get update -y
-          apt-get install -y tar unzip zip
+          echo "Runner OS: $RUNNER_OS"
+          uname -a
 
+      # 2️⃣ Установка системных пакетов (tar, zip и др.)
+      - name: Install base packages
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y tar unzip zip
+
+      # 3️⃣ Клонирование репозитория
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 4️⃣ Установка Flutter SDK
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.x'
           channel: 'stable'
 
+      # 5️⃣ Проверка зависимостей
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      # 6️⃣ Установка Android SDK 34 (устойчивый билд)
       - name: Install Android SDK 34
         run: |
           echo "Installing Android SDK 34..."
-          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          yes | sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
+      # 7️⃣ Установка зависимостей Flutter
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Generate native folders (if missing)
-        run: flutter create .
-
-      - name: Build Android AppBundle (.aab)
-        run: flutter build appbundle --release
-
-      - name: Build Android APK (.apk)
-        run: flutter build apk --release
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: barista-release-${{ github.run_number }}
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
-          retention-days: 14
+      # 8️⃣ Генерация нативных директорий (если нет
