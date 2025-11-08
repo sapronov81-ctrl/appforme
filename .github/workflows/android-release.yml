@@ -2,15 +2,6 @@ name: Android Release (APK & AAB)
 
 on:
   workflow_dispatch:
-    inputs:
-      track:
-        description: "Play track (internal/alpha/beta/production)"
-        required: false
-        default: "internal"
-      in_app_update_priority:
-        description: "In-app update priority (0-5)"
-        required: false
-        default: "0"
   push:
     tags:
       - "v*.*.*"
@@ -26,13 +17,13 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Install required system packages
+      - name: Install required packages
         run: |
-          sudo apt-get update
-          sudo apt-get install -y tar unzip zip
+          apt-get update -y
+          apt-get install -y tar unzip zip
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,15 +36,11 @@ jobs:
           flutter-version: '3.24.x'
           channel: 'stable'
 
-      - name: Ensure cmdline-tools installed
-        run: |
-          sudo mkdir -p /usr/local/lib/android/sdk/cmdline-tools/latest
-          sudo yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
       - name: Install Android SDK 34
         run: |
           echo "Installing Android SDK 34..."
-          sudo /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Flutter pub get
         run: flutter pub get
