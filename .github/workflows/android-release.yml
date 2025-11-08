@@ -1,0 +1,57 @@
+name: Android Release (APK & AAB)
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Play track (internal/alpha/beta/production)"
+        required: false
+        default: "internal"
+      in_app_update_priority:
+        description: "In-app update priority (0-5)"
+        required: false
+        default: "0"
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  JAVA_VERSION: "17"
+  ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+  GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.jvmargs='-Xmx4g -Dfile.encoding=UTF-8' -Dorg.gradle.parallel=true -Dorg.gradle.configuration-cache=true"
+  CI_GRADLE_ARGS: "--stacktrace --no-daemon -Pci=true"
+  VERSION_NAME: ${{ github.ref_name }}
+  VERSION_CODE: ${{ github.run_number }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Generate native (if missing)
+        run: flutter create .
+
+      - name: Build AAB & APK
+        run: |
+          flutter build appbundle --release
+          flutter build apk --release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-android-release-${{ github.ref_name }}-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/*.aab
+          retention-days: 14
