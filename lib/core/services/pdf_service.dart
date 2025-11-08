@@ -1,86 +1,75 @@
 import 'dart:io';
-import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
+import 'package:path_provider/path_provider.dart';
 
 class PdfService {
-  static Future<File> createAuditPdf({
+  /// Генерация PDF-отчёта аудита или аттестации
+  static Future<File> generateReport({
     required String title,
-    required Map<String, dynamic> data,
-    List<File> photos = const [],
+    required String cafeName,
+    required DateTime date,
+    required List<String> sections,
+    required Map<String, List<File>> photosBySection,
+    String? notes,
   }) async {
     final pdf = pw.Document();
-    final df = DateFormat('yyyy-MM-dd HH:mm');
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        build: (ctx) => [
-          pw.Header(level: 0, child: pw.Text(title, style: pw.TextStyle(fontSize: 22))),
-          pw.Text('Сформировано: ${df.format(DateTime.now())}'),
-          pw.SizedBox(height: 8),
-          ...data.entries.map((e) => pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(e.key, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 4),
-                  pw.Text(e.value.toString()),
-                  pw.SizedBox(height: 6),
-                ],
-              )),
-          if (photos.isNotEmpty) pw.Header(text: 'Фото'),
-          if (photos.isNotEmpty)
-            pw.Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final f in photos)
-                  pw.Container(
-                    width: 180,
-                    height: 120,
-                    child: pw.Image(pw.MemoryImage(await f.readAsBytes()), fit: pw.BoxFit.cover),
-                  )
-              ],
-            )
+        build: (context) => [
+          pw.Center(
+            child: pw.Text(
+              title,
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text("Кафе: $cafeName"),
+          pw.Text("Дата: ${date.toString().split(' ').first}"),
+          pw.SizedBox(height: 20),
+          if (notes != null) pw.Text("Комментарий: $notes"),
+
+          // --- Секции проверки ---
+          for (final section in sections) ...[
+            pw.SizedBox(height: 20),
+            pw.Text(
+              section,
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 8),
+            if (photosBySection.containsKey(section))
+              ...await _buildPhotoWidgets(photosBySection[section]!),
+          ],
         ],
       ),
     );
 
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/audit_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    final file = File('${dir.path}/${title.replaceAll(' ', '_')}.pdf');
     await file.writeAsBytes(await pdf.save());
     return file;
   }
 
-  static Future<File> createAttestationPdf({
-    required String title,
-    required Map<String, dynamic> data,
-  }) async {
-    final pdf = pw.Document();
-    final df = DateFormat('yyyy-MM-dd HH:mm');
-
-    pdf.addPage(pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      build: (ctx) => [
-        pw.Header(level: 0, child: pw.Text(title, style: pw.TextStyle(fontSize: 22))),
-        pw.Text('Сформировано: ${df.format(DateTime.now())}'),
-        pw.SizedBox(height: 8),
-        ...data.entries.map((e) => pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(e.key, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 4),
-                pw.Text(e.value.toString()),
-                pw.SizedBox(height: 6),
-              ],
-            )),
-      ],
-    ));
-
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/attestation_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(await pdf.save());
-    return file;
+  /// Асинхронное создание виджетов для фото
+  static Future<List<pw.Widget>> _buildPhotoWidgets(List<File> files) async {
+    final widgets = <pw.Widget>[];
+    for (final f in files) {
+      try {
+        final bytes = await f.readAsBytes();
+        widgets.add(
+          pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 8),
+            height: 200,
+            child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
+          ),
+        );
+      } catch (e) {
+        widgets.add(
+          pw.Text('Ошибка при загрузке изображения: ${f.path}'),
+        );
+      }
+    }
+    return widgets;
   }
 }
