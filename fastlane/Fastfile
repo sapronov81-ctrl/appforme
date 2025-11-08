@@ -1,0 +1,20 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload AAB to Google Play via supply"
+  lane :deploy do |opts|
+    track = opts[:track] || ENV.fetch("SUPPLY_TRACK", "internal")
+    priority = (opts[:in_app_update_priority] || ENV.fetch("SUPPLY_IN_APP_UPDATE_PRIORITY", "0")).to_i
+
+    sh("flutter build appbundle --release")
+    aab_path = Dir["build/app/outputs/bundle/release/*.aab"].max_by { |f| File.mtime(f) }
+
+    upload_to_play_store(
+      aab: aab_path,
+      track: track,
+      release_status: "completed",
+      in_app_update_priority: priority,
+      skip_upload_changelogs: true
+    )
+  end
+end
