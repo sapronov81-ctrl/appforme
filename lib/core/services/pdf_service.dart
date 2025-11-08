@@ -106,4 +106,28 @@ class PdfService {
       widgets.add(
         pw.Text(
           section,
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.Fo
+          style: pw.TextStyle(
+            fontSize: 18,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+      );
+
+      for (final f in files) {
+        try {
+          final bytes = f.readAsBytesSync();
+          widgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.only(top: 8),
+              height: 200,
+              child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
+            ),
+          );
+        } catch (_) {
+          widgets.add(pw.Text('Ошибка загрузки фото: ${f.path}'));
+        }
+      }
+    });
+    return widgets;
+  }
+}
