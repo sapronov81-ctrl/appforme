@@ -27,7 +27,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Install required system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tar unzip zip
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -42,7 +48,6 @@ jobs:
       - name: Ensure cmdline-tools installed
         run: |
           sudo mkdir -p /usr/local/lib/android/sdk/cmdline-tools/latest
-          sudo yes | sdkmanager --licenses || true
           sudo yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Install Android SDK 34
