@@ -15,9 +15,9 @@ jobs:
       - name: Download repository ZIP
         run: |
           echo "Downloading repository archive..."
-          curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/${{ github.ref_name || 'main' }}.zip"
+          curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/main.zip"
           python3 - <<'PYCODE'
-import zipfile, os
+import zipfile
 with zipfile.ZipFile("repo.zip", "r") as zip_ref:
     zip_ref.extractall(".")
 print("Repository extracted.")
