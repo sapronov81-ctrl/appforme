@@ -6,25 +6,16 @@ on:
     tags:
       - "v*.*.*"
 
-env:
-  JAVA_VERSION: "17"
-  FLUTTER_VERSION: "3.24.x"
-  CHANNEL: "stable"
-  VERSION_NAME: ${{ github.ref_name }}
-  VERSION_CODE: ${{ github.run_number }}
-
 jobs:
   build:
-    name: Build Android (no sudo)
+    name: Build Android App
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Скачать репозиторий без actions/checkout (без tar)
       - name: Download repository ZIP
         run: |
           echo "Downloading repository archive..."
           curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/${{ github.ref_name || 'main' }}.zip"
-          echo "Extracting..."
           python3 - <<'PYCODE'
 import zipfile, os
 with zipfile.ZipFile("repo.zip", "r") as zip_ref:
@@ -33,33 +24,22 @@ print("Repository extracted.")
 PYCODE
           ls -R | head -20
 
-      # 2️⃣ Установить Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: ${{ env.CHANNEL }}
+          flutter-version: '3.24.x'
+          channel: 'stable'
 
-      # 3️⃣ Проверить окружение
-      - name: Check Flutter & Java
-        run: |
-          flutter --version
-          java -version || true
-
-      # 4️⃣ Сборка приложения
-      - name: Build Android App
-        working-directory: .
+      - name: Build Android
         run: |
           flutter pub get
-          flutter build appbundle --release
           flutter build apk --release
+          flutter build appbundle --release
 
-      # 5️⃣ Загрузка артефактов
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: barista-build-${{ github.run_number }}
+          name: barista-release-${{ github.run_number }}
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
-          retention-days: 14
