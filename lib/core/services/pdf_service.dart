@@ -1,75 +1,102 @@
 import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 
+/// Универсальный сервис для генерации PDF файлов
 class PdfService {
-  /// Генерация PDF-отчёта аудита или аттестации
-  static Future<File> generateReport({
+  /// Создание PDF для аудита
+  static Future<File> createAuditPdf({
     required String title,
-    required String cafeName,
-    required DateTime date,
-    required List<String> sections,
-    required Map<String, List<File>> photosBySection,
-    String? notes,
+    required Map<String, dynamic> data,
+    required Map<String, List<File>> photos,
   }) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
-        build: (context) => [
-          pw.Center(
-            child: pw.Text(
-              title,
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+        build: (context) {
+          final content = <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                title,
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
             ),
-          ),
-          pw.SizedBox(height: 20),
-          pw.Text("Кафе: $cafeName"),
-          pw.Text("Дата: ${date.toString().split(' ').first}"),
-          pw.SizedBox(height: 20),
-          if (notes != null) pw.Text("Комментарий: $notes"),
-
-          // --- Секции проверки ---
-          for (final section in sections) ...[
             pw.SizedBox(height: 20),
-            pw.Text(
+          ];
+
+          // Добавляем текстовые данные аудита
+          data.forEach((key, value) {
+            content.add(pw.Text('$key: $value'));
+          });
+
+          // Добавляем фото
+          photos.forEach((section, files) {
+            content.add(pw.SizedBox(height: 20));
+            content.add(pw.Text(
               section,
               style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 8),
-            if (photosBySection.containsKey(section))
-              ...await _buildPhotoWidgets(photosBySection[section]!),
-          ],
-        ],
+            ));
+
+            for (final f in files) {
+              try {
+                final bytes = f.readAsBytesSync();
+                content.add(
+                  pw.Container(
+                    margin: const pw.EdgeInsets.only(bottom: 8),
+                    height: 200,
+                    child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
+                  ),
+                );
+              } catch (_) {
+                content.add(pw.Text('Ошибка при загрузке фото: ${f.path}'));
+              }
+            }
+          });
+
+          return content;
+        },
       ),
     );
 
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/${title.replaceAll(' ', '_')}.pdf');
+    final file = File('${dir.path}/audit_${DateTime.now().millisecondsSinceEpoch}.pdf');
     await file.writeAsBytes(await pdf.save());
     return file;
   }
 
-  /// Асинхронное создание виджетов для фото
-  static Future<List<pw.Widget>> _buildPhotoWidgets(List<File> files) async {
-    final widgets = <pw.Widget>[];
-    for (final f in files) {
-      try {
-        final bytes = await f.readAsBytes();
-        widgets.add(
-          pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 8),
-            height: 200,
-            child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover),
-          ),
-        );
-      } catch (e) {
-        widgets.add(
-          pw.Text('Ошибка при загрузке изображения: ${f.path}'),
-        );
-      }
-    }
-    return widgets;
+  /// Создание PDF для аттестации
+  static Future<File> createAttestationPdf({
+    required String title,
+    required Map<String, dynamic> data,
+  }) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (context) {
+          final widgets = <pw.Widget>[
+            pw.Center(
+              child: pw.Text(
+                title,
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 20),
+          ];
+
+          data.forEach((k, v) {
+            widgets.add(pw.Text('$k: $v'));
+          });
+
+          return widgets;
+        },
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/attestation_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    await file.writeAsBytes(await pdf.save());
+    return file;
   }
 }
