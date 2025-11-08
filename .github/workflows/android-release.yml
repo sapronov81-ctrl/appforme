@@ -1,4 +1,4 @@
-name: Android Release (APK & AAB)
+name: Android Release (Universal CI, no tar/sudo)
 
 on:
   workflow_dispatch:
@@ -8,61 +8,57 @@ on:
 
 env:
   JAVA_VERSION: "17"
-  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-  PATH: /usr/local/lib/android/sdk/cmdline-tools/latest/bin:$PATH
-  GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.jvmargs='-Xmx4g -Dfile.encoding=UTF-8' -Dorg.gradle.parallel=true -Dorg.gradle.configuration-cache=true"
-  CI_GRADLE_ARGS: "--stacktrace --no-daemon -Pci=true"
+  FLUTTER_VERSION: "3.24.x"
+  CHANNEL: "stable"
   VERSION_NAME: ${{ github.ref_name }}
   VERSION_CODE: ${{ github.run_number }}
 
 jobs:
   build:
-    name: Build Android App
-    runs-on: ubuntu-22.04
+    name: Build Android (no sudo)
+    runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Загрузка кода проекта
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      # 1️⃣ Скачать репозиторий без actions/checkout (без tar)
+      - name: Download repository ZIP
+        run: |
+          echo "Downloading repository archive..."
+          curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/${{ github.ref_name || 'main' }}.zip"
+          echo "Extracting..."
+          python3 - <<'PYCODE'
+import zipfile, os
+with zipfile.ZipFile("repo.zip", "r") as zip_ref:
+    zip_ref.extractall(".")
+print("Repository extracted.")
+PYCODE
+          ls -R | head -20
 
-      # 2️⃣ Установка Flutter SDK
+      # 2️⃣ Установить Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
-          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: ${{ env.CHANNEL }}
 
-      # 3️⃣ Проверка среды (без uname/sudo)
-      - name: Verify environment (safe)
+      # 3️⃣ Проверить окружение
+      - name: Check Flutter & Java
         run: |
-          echo "Runner OS: $RUNNER_OS"
           flutter --version
-          java -version || echo "Java already installed"
-          echo "Android SDK root: $ANDROID_SDK_ROOT"
+          java -version || true
 
-      # 4️⃣ Получение зависимостей
-      - name: Flutter pub get
-        run: flutter pub get
+      # 4️⃣ Сборка приложения
+      - name: Build Android App
+        working-directory: .
+        run: |
+          flutter pub get
+          flutter build appbundle --release
+          flutter build apk --release
 
-      # 5️⃣ Генерация платформенных папок (если нет android/)
-      - name: Generate android/ios folders if missing
-        run: flutter create .
-
-      # 6️⃣ Сборка AAB (релиз)
-      - name: Build Android AppBundle (.aab)
-        run: flutter build appbundle --release
-
-      # 7️⃣ Сборка APK (релиз)
-      - name: Build Android APK (.apk)
-        run: flutter build apk --release
-
-      # 8️⃣ Сохранение артефактов сборки
-      - name: Upload build artifacts
+      # 5️⃣ Загрузка артефактов
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: barista-release-${{ github.run_number }}
+          name: barista-build-${{ github.run_number }}
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
