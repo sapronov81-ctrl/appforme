@@ -19,7 +19,8 @@ jobs:
           curl -L -o repo.zip "https://github.com/${{ github.repository }}/archive/refs/heads/main.zip"
           echo "Extracting..."
           python3 -c "import zipfile; zipfile.ZipFile('repo.zip').extractall('.'); print('Repository extracted.')"
-          ls -R | head -20
+          echo "Contents:"
+          ls -l
 
       # 2️⃣ Установить Flutter
       - name: Setup Flutter
@@ -28,18 +29,20 @@ jobs:
           flutter-version: '3.24.x'
           channel: 'stable'
 
-      # 3️⃣ Сборка Flutter-приложения
+      # 3️⃣ Проверка структуры и сборка
       - name: Build Android
+        working-directory: appforme-main  # ⚠️ имя папки после распаковки архива
         run: |
+          flutter doctor
           flutter pub get
           flutter build apk --release
           flutter build appbundle --release
 
-      # 4️⃣ Загрузить артефакты сборки
+      # 4️⃣ Загрузка артефактов
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: barista-release-${{ github.run_number }}
           path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+            appforme-main/build/app/outputs/flutter-apk/app-release.apk
+            appforme-main/build/app/outputs/bundle/release/app-release.aab
