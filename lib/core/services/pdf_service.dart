@@ -15,26 +15,34 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         build: (context) {
-          final widgets = <pw.Widget>[
+          final widgets = <pw.Widget>[];
+
+          widgets.add(
             pw.Center(
               child: pw.Text(
                 title,
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
             ),
-            pw.SizedBox(height: 20),
-            ..._buildDataSection(data),
-            pw.SizedBox(height: 20),
-            ..._buildPhotoSections(photos),
-          ];
+          );
+
+          widgets.add(pw.SizedBox(height: 20));
+          widgets.addAll(_buildDataSection(data));
+          widgets.add(pw.SizedBox(height: 20));
+          widgets.addAll(_buildPhotoSections(photos));
+
           return widgets;
         },
       ),
     );
 
     final dir = await getApplicationDocumentsDirectory();
-    final file =
-        File('${dir.path}/audit_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    final file = File(
+      '${dir.path}/audit_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
     await file.writeAsBytes(await pdf.save());
     return file;
   }
@@ -48,26 +56,54 @@ class PdfService {
 
     pdf.addPage(
       pw.MultiPage(
-        build: (context) => [
-          pw.Center(
-            child: pw.Text(
-              title,
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+        build: (context) {
+          final widgets = <pw.Widget>[];
+
+          widgets.add(
+            pw.Center(
+              child: pw.Text(
+                title,
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-          pw.SizedBox(height: 20),
-          ..._buildDataSection(data),
-        ],
+          );
+
+          widgets.add(pw.SizedBox(height: 20));
+          widgets.addAll(_buildDataSection(data));
+
+          return widgets;
+        },
       ),
     );
 
     final dir = await getApplicationDocumentsDirectory();
-    final file =
-        File('${dir.path}/attestation_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    final file = File(
+      '${dir.path}/attestation_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
     await file.writeAsBytes(await pdf.save());
     return file;
   }
 
-  /// Текстовые блоки данных
-  static List<pw.Widget> _buildDataSection(Map<String, dynamic> data_
+  /// Блок текстовых данных
+  static List<pw.Widget> _buildDataSection(Map<String, dynamic> data) {
+    final widgets = <pw.Widget>[];
+    data.forEach((key, value) {
+      widgets.add(
+        pw.Text('$key: $value', style: const pw.TextStyle(fontSize: 14)),
+      );
+    });
+    return widgets;
+  }
 
+  /// Блок фотографий по секциям
+  static List<pw.Widget> _buildPhotoSections(Map<String, List<File>> photos) {
+    final widgets = <pw.Widget>[];
+    photos.forEach((section, files) {
+      widgets.add(pw.SizedBox(height: 16));
+      widgets.add(
+        pw.Text(
+          section,
+          style: pw.TextStyle(fontSize: 18, fontWeight: pw.Fo
