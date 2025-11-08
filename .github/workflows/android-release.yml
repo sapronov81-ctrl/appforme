@@ -17,7 +17,7 @@ on:
 
 env:
   JAVA_VERSION: "17"
-  ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+  ANDROID_SDK_ROOT: /tmp/android-sdk
   GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.jvmargs='-Xmx4g -Dfile.encoding=UTF-8' -Dorg.gradle.parallel=true -Dorg.gradle.configuration-cache=true"
   CI_GRADLE_ARGS: "--stacktrace --no-daemon -Pci=true"
   VERSION_NAME: ${{ github.ref_name }}
